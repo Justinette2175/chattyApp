@@ -7,7 +7,7 @@ const uuid = require('node-uuid');
 
 // Set the port to 4000
 const PORT = 4000;
-var connectedUsers = 0;
+let connectedUsers = 0;
 
 // Create a new express server
 const server = express()
@@ -18,14 +18,19 @@ const server = express()
 // Create the WebSockets server
 const wss = new SocketServer({ server });
 
-var currentColor = 1;
+let currentColor = 1;
 
+wss.broadcast = function (data){
+  wss.clients.forEach(function each(client) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  });
+}
 // Set up a callback that will run when a client connects to the server
 // When a client connects they are assigned a socket, represented by
 // the ws parameter in the callback.
 wss.on('connection', (ws) => {
-
-  console.log(ws.upgradeReq.url);
   connectedUsers +=1;
   if (currentColor === 4){
     currentColor = 1;
@@ -34,36 +39,22 @@ wss.on('connection', (ws) => {
     currentColor += 1;
   }
   console.log('Client connected');
-  console.log(currentColor);
-  var message= {connectedUsers : connectedUsers, type : "connectedUsers"};
-  var colorMessage = {color:currentColor, type:"colorSet"};
+  const message = {connectedUsers : connectedUsers, type : "connectedUsers"};
+  const colorMessage = {color:currentColor, type:"colorSet"};
   ws.send(JSON.stringify(colorMessage));
-  wss.clients.forEach(function each(client) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
-    }
-  });
+  wss.broadcast(message);
 
 
   ws.on('message', (message) => {
     message = JSON.parse(message);
     switch (message.type){
       case "message" :
-      console.log("incoming message");
         message.id = uuid.v1();
-        wss.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-          }
-        });
+        wss.broadcast(message);
         break;
       case "notification" :
-        console.log("incoming notification");
-        wss.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-          }
-        });
+        message.id = uuid.v1();
+        wss.broadcast(message);
         break;
     }
 
@@ -74,10 +65,6 @@ wss.on('connection', (ws) => {
     console.log('Client disconnected')
     connectedUsers -=1;
     var message = {connectedUsers : connectedUsers, type : "connectedUsers"}
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(message));
-      }
-    });
+    wss.broadcast(message);
   });
 });

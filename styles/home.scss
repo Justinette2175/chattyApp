@@ -3,6 +3,13 @@
   max-width: 100vw;
   font-family: 'Open Sans', sans-serif;
 
+  .connected-users{
+    float : right;
+    position: relative;
+    top:-20px;
+    font-weight:700;
+  }
+
   .color1{
     color : #1abc9c;
   }
@@ -40,7 +47,6 @@
 
   .image{
     margin: auto;
-    float: none;
     width:60%;
     text-align: center;
     flex: 0 1 100%;

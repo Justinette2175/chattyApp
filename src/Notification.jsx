@@ -4,12 +4,10 @@ class Notification extends Component {
 
   render() {
     console.log("Rendering <Notification/>");
-
-    var notification = this.props.notification;
-    console.log(notification);
+    let renderedContent = <span key="3">{this.props.content}</span>
     return (
       <div className="message system">
-        {notification}
+        {renderedContent}
       </div>
     )
   }
