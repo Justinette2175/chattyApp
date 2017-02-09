@@ -8,9 +8,10 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentUser: {name: "Bob", color : 1},
+      currentUser: {name: "Bob"},
       messages: [],
-      connectedUsers: {users: 0}
+      connectedUsers: {users: 0},
+      sessionColor : ""
     };
   }
   //only happens once, once app has been mounted on the browser. So it's a good time to be
@@ -23,11 +24,28 @@ class App extends Component {
     console.log("componentDidMount <App />");
     const messages = this.state.messages
     this.socket.onmessage = (event) => {
-      const newMessage = (JSON.parse(event.data));
-      console.log(newMessage.type);
-      console.log("color"+newMessage.color);
-      messages.push(newMessage);
-      this.setState({messages: messages, connectedUsers : {users: newMessage.connectedUsers}, currentColor : newMessage.color});
+      const message = (JSON.parse(event.data));
+      switch(message.type){
+        case "connectedUsers":
+          let name = this.state.currentUser.name
+          this.setState({connectedUsers : {users: message.connectedUsers}});
+          this.setState({currentUser : {name:name, color: color}})
+          break;
+        case "message":
+          messages.push(message);
+          console.log(this.state.currentUser.name);
+          this.setState({messages: messages})
+          break;
+        case "notification":
+          messages.push(message);
+          this.setState({messages: messages});
+          break;
+        case "colorSet":
+          let color = message.color;
+          console.log("color" + color)
+          this.setState({sessionColor:color})
+          break;
+      }
     }
   }
 
@@ -35,7 +53,7 @@ class App extends Component {
     console.log("pressed a key");
     if (e.keyCode === 13){
       console.log("pressed enter")
-      const newMessage = {username: this.state.currentUser.name, content: e.target.value, type:"message", connectedUsers : this.state.connectedUsers.users};
+      const newMessage = {username: this.state.currentUser.name, color:this.state.sessionColor, content: e.target.value, type:"message", connectedUsers : this.state.connectedUsers.users};
       this.socket.send(JSON.stringify(newMessage));
       e.target.value = "";
     }
@@ -47,7 +65,7 @@ class App extends Component {
       var oldUser = this.state.currentUser.name;
       console.log("updating User");
       this.state.currentUser.name = username;
-      var notification = {content: `${oldUser} changed their username to ${username}`, type:"message", connectedUsers : this.state.connectedUsers.users}
+      var notification = {content: `${oldUser} changed their username to ${username}`, type:"notification", connectedUsers : this.state.connectedUsers.users}
       this.socket.send(JSON.stringify(notification));
     }
   }
@@ -61,7 +79,7 @@ class App extends Component {
           <h1>Chatty</h1>
           <span className = "connected-users">Connected users : {this.state.connectedUsers.users}</span>
         </nav>
-      <MessageList messages={this.state.messages} color={this.state.currentColor}/>
+      <MessageList messages={this.state.messages} color={this.state.sessionColor}/>
       <ChatBar currentUser={this.state.currentUser.name} newMessage = {this.newMessage.bind(this)} updateUser={this.updateUser.bind(this)}/>
       </div>
       );
