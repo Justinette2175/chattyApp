@@ -24,6 +24,8 @@ var currentColor = 1;
 // When a client connects they are assigned a socket, represented by
 // the ws parameter in the callback.
 wss.on('connection', (ws) => {
+
+  console.log(ws.upgradeReq.url);
   connectedUsers +=1;
   if (currentColor === 4){
     currentColor = 1;
@@ -32,23 +34,40 @@ wss.on('connection', (ws) => {
     currentColor += 1;
   }
   console.log('Client connected');
-  var messageForAll = {connectedUsers : connectedUsers, type : "connectedUsers"}
-  var messageForUser = {connectedUsers : connectedUsers, type : "connectedUsers", color:currentColor};
-  client.send(JSON.stringify(messageForUser));
+  console.log(currentColor);
+  var message= {connectedUsers : connectedUsers, type : "connectedUsers"};
+  var colorMessage = {color:currentColor, type:"colorSet"};
+  ws.send(JSON.stringify(colorMessage));
   wss.clients.forEach(function each(client) {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(messageForAll));
+      client.send(JSON.stringify(message));
     }
   });
 
+
   ws.on('message', (message) => {
     message = JSON.parse(message);
-    message.id = uuid.v1();
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(message));
-      }
-    });
+    switch (message.type){
+      case "message" :
+      console.log("incoming message");
+        message.id = uuid.v1();
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+          }
+        });
+        break;
+      case "notification" :
+        console.log("incoming notification");
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+          }
+        });
+        break;
+    }
+
+
   });
   // Set up a callback for when a client closes the socket. This usually means they closed their browser.
   ws.on('close', () => {
